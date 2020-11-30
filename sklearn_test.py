@@ -1,4 +1,4 @@
-# Just testing to see if I still remember sklearn
+# Using sklearn to determine the effectiveness of different classifiers
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
 from sklearn.impute import SimpleImputer
@@ -8,18 +8,20 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from time import time
 
-features_list = ["age", "workclass", "education.num", "marital.status", "race",
-                 "sex"]  # variables to help infer who survived
-labels_list = ["income"]  # who survived?
+# Inputs
+features_list = ["age", "workclass", "fnlwgt", "education", "education.num", "marital.status", "occupation",
+                 "relationship", "race", "sex", "capital.gain", "capital.loss", "hours.per.week", "native.country"]
+# Outputs
+labels_list = ["income"]
 
 # Get the features and label columns from the training csv
 data_frame = pd.read_csv("adult.csv", encoding="utf-8", header=0)
 features = data_frame[features_list]
 labels = data_frame[labels_list]
-# Convert categorical data into numerical data
+# Convert categorical data into numerical data (using one-hot encoding)
 features = pd.get_dummies(features)
 labels = pd.get_dummies(labels, drop_first=True)  # make output 1 dimensional
-# Fill in missing values with some number
+# Fill in missing values with some number (based on the mean of a column)
 imputer = SimpleImputer()
 features = imputer.fit_transform(features)
 labels = imputer.fit_transform(labels)
@@ -108,14 +110,14 @@ classifier.fit(features_train, labels_train.ravel())
 print(f"Score (LinearRegression): {classifier.score(features_test, labels_test)}")
 print(f"LinearRegression took {time() - start} s")
 
-# Test the model on the test csv file
-"""test_df = pd.read_csv("/kaggle/input/titanic/test.csv", encoding="utf-8", header=0)
-features_test = imputer.fit_transform(pd.get_dummies(test_df[features_list]))"""
-
-# Get predicted values, then store in a new csv file
-"""classifier = GaussianNB()
-classifier.fit(features, labels.values.ravel())
-preds = classifier.predict(features_test)
-
-new_df = pd.DataFrame({"PassengerId": list(range(892, 1310)), "Survived": preds})
-new_df.to_csv("/kaggle/working/my_submission.csv", index=False)"""
+# # Test the model on the test csv file
+# test_df = pd.read_csv("/kaggle/input/titanic/test.csv", encoding="utf-8", header=0)
+# features_test = imputer.fit_transform(pd.get_dummies(test_df[features_list]))
+#
+# # Get predicted values, then store in a new csv file
+# classifier = GaussianNB()
+# classifier.fit(features, labels.values.ravel())
+# preds = classifier.predict(features_test)
+#
+# new_df = pd.DataFrame({"PassengerId": list(range(892, 1310)), "Survived": preds})
+# new_df.to_csv("/kaggle/working/my_submission.csv", index=False)
