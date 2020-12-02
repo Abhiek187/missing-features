@@ -59,8 +59,23 @@ def main():
     # Read the CSV file and preprocess the data
     data_frame = pd.read_csv("adult.csv", encoding="utf-8", header=0)
     x, y = preprocess_data(data_frame)
-    print(f"x[:10]: {x[:10]}")
-    print(f"y[:10]: {y[:10]}")
+    m = len(x)
+
+    # Shuffle x and y
+    rng = np.random.default_rng()
+    rand_order = rng.permutation(m)
+    x = x[rand_order]
+    y = y[rand_order]
+
+    # Set aside 75% training data and 25% testing data
+    split_index = round(m * 0.75)  # the index must be an int
+    x_train = x[:split_index]
+    x_test = x[split_index:]
+    y_train = y[:split_index]
+    y_test = y[split_index:]
+    print(f"Shapes:\n"
+          f"x_train: {x_train.shape}, x_test: {x_test.shape}\n"
+          f"y_train: {y_train.shape}, y_test: {y_test.shape}")
 
 
 if __name__ == "__main__":
