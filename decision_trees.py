@@ -34,7 +34,7 @@ def preprocess_data(data_frame):
     # Set a flag for each feature with an 80% chance of being missing (0)
     rand_ints = np.random.randint(10, size=(m, k))
     flags = (rand_ints > 1).astype(int)
-    missing_features = np.zeros((m, k2))
+    missing_features = np.zeros((m, k2), dtype=np.int64)
 
     # Match the flags from the original header order to the new header order
     for r in range(m):
@@ -48,7 +48,7 @@ def preprocess_data(data_frame):
                 data[r][c] = 0  # replace missing features with 0
 
     # Interleave the data values with their missing flags (feature1, present?, feature2, present?, ...)
-    x = np.empty((m, k2*2))
+    x = np.empty((m, k2*2), dtype=np.int64)
     # 0::2 = 0, 2, 4, ...; 1::2 = 1, 3, 5, ...
     x[:, 0::2] = data
     x[:, 1::2] = missing_features
