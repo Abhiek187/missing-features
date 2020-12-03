@@ -26,7 +26,7 @@ def preprocess_data(data_frame):
     # Convert the new dataframe into a numpy array
     data = filled_df.to_numpy()
     m = data.shape[0]
-    true_data = data
+    true_data = np.copy(data)  # prevent changes on data from affecting true_data as well
 
     # Augment the data set with flags indicating whether a feature is missing or not
     new_headers = list(filled_df)
@@ -55,11 +55,37 @@ def preprocess_data(data_frame):
     return x, true_data
 
 
+def ridge_regression(x_train, y_train, k, el):
+    """
+    Calculate the optimal weight matrix using ridge regression
+
+    :param x_train: the training input
+    :param y_train: the training output
+    :param k: the number of features in the output
+    :param el: the regularization constant
+    :return: the weight matrix that minimizes the error
+    """
+    return y_train.T @ x_train @ np.linalg.inv(x_train.T @ x_train + el * np.identity(k * 2))
+
+
+def get_error(w, x, y, m):
+    """
+    Calculate the error given either training or testing data
+
+    :param w: the weight matrix (k, 2k)
+    :param x: the input (m, 2k)
+    :param y: the output (m, k)
+    :param m: the number of data points
+    :return: the error (||XW - Y||^2/m)
+    """
+    return 1 / m * np.sum(np.linalg.norm(x @ w.T - y) ** 2)
+
+
 def main():
     # Read the CSV file and preprocess the data
     data_frame = pd.read_csv("adult.csv", encoding="utf-8", header=0)
     x, y = preprocess_data(data_frame)
-    m = len(x)
+    m, k = y.shape  # x has shape (m, 2k)
 
     # Shuffle x and y
     rng = np.random.default_rng()
@@ -73,9 +99,15 @@ def main():
     x_test = x[split_index:]
     y_train = y[:split_index]
     y_test = y[split_index:]
-    print(f"Shapes:\n"
-          f"x_train: {x_train.shape}, x_test: {x_test.shape}\n"
-          f"y_train: {y_train.shape}, y_test: {y_test.shape}")
+    m_train = len(x_train)
+    m_test = len(x_test)
+
+    w_hat = ridge_regression(x_train, y_train, k, 0.25)
+    print(f"w_hat shape: {w_hat.shape}, x_test shape: {x_test.shape}, y_test shape: {y_test.shape}")
+    err_train = get_error(w_hat, x_train, y_train, m_train)
+    err_test = get_error(w_hat, x_test, y_test, m_test)
+    print(f"Training error = {err_train}")
+    print(f"Testing error = {err_test}")
 
 
 if __name__ == "__main__":
