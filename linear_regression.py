@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -102,12 +103,43 @@ def main():
     m_train = len(x_train)
     m_test = len(x_test)
 
-    w_hat = ridge_regression(x_train, y_train, k, 0.25)
-    print(f"w_hat shape: {w_hat.shape}, x_test shape: {x_test.shape}, y_test shape: {y_test.shape}")
-    err_train = get_error(w_hat, x_train, y_train, m_train)
-    err_test = get_error(w_hat, x_test, y_test, m_test)
-    print(f"Training error = {err_train}")
-    print(f"Testing error = {err_test}")
+    # Plot how the training and testing error change with lambda
+    num_points = 10
+    els = np.linspace(-0.5, 0.5, num_points)  # lambda = 0 will result in an invertible matrix
+    errs_train = np.empty(num_points)
+    errs_test = np.empty(num_points)
+
+    for i in range(num_points):
+        print(f"Point {i} / {num_points}...")
+        w_hat = ridge_regression(x_train, y_train, k, els[i])
+        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+
+    # Find the lambda that results in the smallest training and testing error
+    min_index_train = np.argmin(errs_train)
+    min_index_test = np.argmin(errs_test)
+    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
+    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
+
+    plt.plot(els, errs_train)
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Error (Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Error")
+    plt.legend(["Training Error", "Testing Error"])
+    plt.show()
+
+    # plt.plot(els, errs_train)
+    # plt.title("\u03BB vs. Training Error (Ridge Regression)")
+    # plt.xlabel("Regularization Constant (\u03BB)")
+    # plt.ylabel("Training Error")
+    # plt.show()
+    #
+    # plt.plot(els, errs_test)
+    # plt.title("\u03BB vs. Testing Error (Ridge Regression)")
+    # plt.xlabel("Regularization Constant (\u03BB)")
+    # plt.ylabel("Testing Error")
+    # plt.show()
 
 
 if __name__ == "__main__":
