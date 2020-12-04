@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from time import time
 
 
 def preprocess_data(data_frame):
@@ -49,7 +50,7 @@ def preprocess_data(data_frame):
                 data[r][c] = 0  # replace missing features with 0
 
     # Interleave the data values with their missing flags (feature1, present?, feature2, present?, ...)
-    x = np.empty((m, k2*2), dtype=np.int64)
+    x = np.empty((m, k2 * 2), dtype=np.int64)
     # 0::2 = 0, 2, 4, ...; 1::2 = 1, 3, 5, ...
     x[:, 0::2] = data
     x[:, 1::2] = missing_features
@@ -67,6 +68,32 @@ def ridge_regression(x_train, y_train, k, el):
     :return: the weight matrix that minimizes the error
     """
     return y_train.T @ x_train @ np.linalg.inv(x_train.T @ x_train + el * np.identity(k * 2))
+
+
+def gd_ridge_regression(x_train, y_train, k, el):
+    """
+    Calculate the optimal weight matrix using gradient descent
+
+    :param x_train: the training input
+    :param y_train: the training output
+    :param k: the number of features in the output
+    :param el: the regularization constant
+    :return: the weight matrix that minimizes the error
+    """
+    a = 1e-15  # make alpha a small constant
+    w_hat = np.empty((2 * k, k))  # the initial guess of W
+    epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
+
+    while True:
+        wp_hat = (np.identity(2 * k) - a * x_train.T @ x_train - a * el * np.identity(2 * k)) \
+            @ w_hat + a * x_train.T @ y_train
+
+        if np.linalg.norm(wp_hat - w_hat) < epsilon:
+            break
+        else:
+            w_hat = wp_hat
+
+    return w_hat.T  # the calculations above were done with W^T
 
 
 def get_error(w, x, y, m):
@@ -103,31 +130,47 @@ def main():
     m_train = len(x_train)
     m_test = len(x_test)
 
-    # Plot how the training and testing error change with lambda
-    num_points = 10
-    els = np.linspace(-0.5, 0.5, num_points)  # lambda = 0 will result in an invertible matrix
-    errs_train = np.empty(num_points)
-    errs_test = np.empty(num_points)
+    start = time()
+    w_hat1 = gd_ridge_regression(x_train, y_train, k, 0.25)
+    print(f"Gradient descent took {time() - start} s")
+    err_train1 = get_error(w_hat1, x_train, y_train, m_train)
+    err_test1 = get_error(w_hat1, x_test, y_test, m_test)
+    print(f"err_train_gd = {err_train1}")
+    print(f"err_test_gd = {err_test1}")
 
-    for i in range(num_points):
-        print(f"Point {i} / {num_points}...")
-        w_hat = ridge_regression(x_train, y_train, k, els[i])
-        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+    start = time()
+    w_hat2 = ridge_regression(x_train, y_train, k, 0.25)
+    print(f"Regular ridge regression took {time() - start} s")
+    err_train2 = get_error(w_hat2, x_train, y_train, m_train)
+    err_test2 = get_error(w_hat2, x_test, y_test, m_test)
+    print(f"err_train_rr = {err_train2}")
+    print(f"err_test_rr = {err_test2}")
 
-    # Find the lambda that results in the smallest training and testing error
-    min_index_train = np.argmin(errs_train)
-    min_index_test = np.argmin(errs_test)
-    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
-    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
-
-    plt.plot(els, errs_train)
-    plt.plot(els, errs_test)
-    plt.title("\u03BB vs. Error (Ridge Regression)")
-    plt.xlabel("Regularization Constant (\u03BB)")
-    plt.ylabel("Error")
-    plt.legend(["Training Error", "Testing Error"])
-    plt.show()
+    # # Plot how the training and testing error change with lambda
+    # num_points = 10
+    # els = np.linspace(-0.5, 0.5, num_points)  # lambda = 0 will result in an invertible matrix
+    # errs_train = np.empty(num_points)
+    # errs_test = np.empty(num_points)
+    #
+    # for i in range(num_points):
+    #     print(f"Point {i} / {num_points}...")
+    #     w_hat = ridge_regression(x_train, y_train, k, els[i])
+    #     errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
+    #     errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+    #
+    # # Find the lambda that results in the smallest training and testing error
+    # min_index_train = np.argmin(errs_train)
+    # min_index_test = np.argmin(errs_test)
+    # print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
+    # print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
+    #
+    # plt.plot(els, errs_train)
+    # plt.plot(els, errs_test)
+    # plt.title("\u03BB vs. Error (Ridge Regression)")
+    # plt.xlabel("Regularization Constant (\u03BB)")
+    # plt.ylabel("Error")
+    # plt.legend(["Training Error", "Testing Error"])
+    # plt.show()
 
     # plt.plot(els, errs_train)
     # plt.title("\u03BB vs. Training Error (Ridge Regression)")
