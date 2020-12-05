@@ -176,28 +176,28 @@ def main():
 
     # Compare the execution of each form of linear regression
     start = time()
-    w_hat2 = ridge_regression(x_train, y_train, k, 0.25)
+    w_hat = ridge_regression(x_train, y_train, k, 0.25)
     print(f"Regular ridge regression took {time() - start} s")
-    err_train2 = get_error(w_hat2, x_train, y_train, m_train)
-    err_test2 = get_error(w_hat2, x_test, y_test, m_test)
-    print(f"err_train_rr = {err_train2}")
-    print(f"err_test_rr = {err_test2}")
+    err_train = get_error(w_hat, x_train, y_train, m_train)
+    err_test = get_error(w_hat, x_test, y_test, m_test)
+    print(f"err_train_rr = {err_train}")
+    print(f"err_test_rr = {err_test}")
 
     start = time()
-    w_hat1 = gd_ridge_regression(x_train, y_train, k, 0.25, rng)
+    w_hat = gd_ridge_regression(x_train, y_train, k, 0.25, rng)
     print(f"Gradient descent took {time() - start} s")
-    err_train1 = get_error(w_hat1, x_train, y_train, m_train)
-    err_test1 = get_error(w_hat1, x_test, y_test, m_test)
-    print(f"err_train_gd = {err_train1}")
-    print(f"err_test_gd = {err_test1}")
+    err_train = get_error(w_hat, x_train, y_train, m_train)
+    err_test = get_error(w_hat, x_test, y_test, m_test)
+    print(f"err_train_gd = {err_train}")
+    print(f"err_test_gd = {err_test}")
 
     start = time()
-    w_hat3 = lasso_regression(x_train, y_train, k, 0.25, rng)
+    w_hat = lasso_regression(x_train, y_train, k, 0.25, rng)
     print(f"Lasso regression took {time() - start} s")
-    err_train3 = get_error(w_hat3, x_train, y_train, m_train)
-    err_test3 = get_error(w_hat3, x_test, y_test, m_test)
-    print(f"err_train_lr = {err_train3}")
-    print(f"err_test_lr = {err_test3}")
+    err_train = get_error(w_hat, x_train, y_train, m_train)
+    err_test = get_error(w_hat, x_test, y_test, m_test)
+    print(f"err_train_lr = {err_train}")
+    print(f"err_test_lr = {err_test}")
 
     # Plot how the training and testing error change with lambda
     num_points = 10
