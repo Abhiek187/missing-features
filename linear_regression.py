@@ -70,7 +70,7 @@ def ridge_regression(x_train, y_train, k, el):
     return y_train.T @ x_train @ np.linalg.inv(x_train.T @ x_train + el * np.identity(k * 2))
 
 
-def gd_ridge_regression(x_train, y_train, k, el):
+def gd_ridge_regression(x_train, y_train, k, el, rng):
     """
     Calculate the optimal weight matrix using gradient descent
 
@@ -78,10 +78,11 @@ def gd_ridge_regression(x_train, y_train, k, el):
     :param y_train: the training output
     :param k: the number of features in the output
     :param el: the regularization constant
+    :param rng: the random number generator (np.random.default_rng())
     :return: the weight matrix that minimizes the error
     """
     a = 1e-15  # make alpha a small constant
-    w_hat = np.zeros((2 * k, k))  # the initial guess of W
+    w_hat = rng.random((2 * k, k))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
 
     while True:
@@ -107,7 +108,7 @@ def lasso_regression(x_train, y_train, k, el, rng):
     :param rng: the random number generator (np.random.default_rng())
     :return: the weight matrix that minimizes the error
     """
-    w_hat = np.empty((k, 2 * k))  # the initial guess of W
+    w_hat = rng.random((k, 2 * k))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
 
     while True:
@@ -173,110 +174,117 @@ def main():
     m_train = len(x_train)
     m_test = len(x_test)
 
-    # # Compare the execution of each form of linear regression
-    # start = time()
-    # w_hat1 = gd_ridge_regression(x_train, y_train, k, 0.25)
-    # print(f"Gradient descent took {time() - start} s")
-    # err_train1 = get_error(w_hat1, x_train, y_train, m_train)
-    # err_test1 = get_error(w_hat1, x_test, y_test, m_test)
-    # print(f"err_train_gd = {err_train1}")
-    # print(f"err_test_gd = {err_test1}")
-    #
-    # start = time()
-    # w_hat2 = ridge_regression(x_train, y_train, k, 0.25)
-    # print(f"Regular ridge regression took {time() - start} s")
-    # err_train2 = get_error(w_hat2, x_train, y_train, m_train)
-    # err_test2 = get_error(w_hat2, x_test, y_test, m_test)
-    # print(f"err_train_rr = {err_train2}")
-    # print(f"err_test_rr = {err_test2}")
+    # Compare the execution of each form of linear regression
+    start = time()
+    w_hat2 = ridge_regression(x_train, y_train, k, 0.25)
+    print(f"Regular ridge regression took {time() - start} s")
+    err_train2 = get_error(w_hat2, x_train, y_train, m_train)
+    err_test2 = get_error(w_hat2, x_test, y_test, m_test)
+    print(f"err_train_rr = {err_train2}")
+    print(f"err_test_rr = {err_test2}")
 
-    # start = time()
-    # w_hat3 = lasso_regression(x_train, y_train, k, 0.25, rng)
-    # print(f"Lasso regression took {time() - start} s")
-    # err_train3 = get_error(w_hat3, x_train, y_train, m_train)
-    # err_test3 = get_error(w_hat3, x_test, y_test, m_test)
-    # print(f"err_train_lr = {err_train3}")
-    # print(f"err_test_lr = {err_test3}")
+    start = time()
+    w_hat1 = gd_ridge_regression(x_train, y_train, k, 0.25, rng)
+    print(f"Gradient descent took {time() - start} s")
+    err_train1 = get_error(w_hat1, x_train, y_train, m_train)
+    err_test1 = get_error(w_hat1, x_test, y_test, m_test)
+    print(f"err_train_gd = {err_train1}")
+    print(f"err_test_gd = {err_test1}")
 
-    # # Plot how the training and testing error change with lambda
-    # num_points = 100
-    # els = np.linspace(-1, 1, num_points)  # lambda = 0 will result in an invertible matrix
-    # errs_train = np.empty(num_points)
-    # errs_test = np.empty(num_points)
-    #
-    # for i in range(num_points):
-    #     print(f"Point {i} / {num_points}...")
-    #     w_hat = gd_ridge_regression(x_train, y_train, k, els[i])
-    #     errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-    #     errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
-    #
-    # # Find the lambda that results in the smallest training and testing error
-    # min_index_train = np.argmin(errs_train)
-    # min_index_test = np.argmin(errs_test)
-    # print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
-    # print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
-
-    # plt.plot(els, errs_train)
-    # plt.plot(els, errs_test)
-    # plt.title("\u03BB vs. Error (Gradient Descent Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Error")
-    # plt.legend(["Training Error", "Testing Error"])
-    # plt.show()
-
-    # plt.plot(els, errs_train)
-    # plt.title("\u03BB vs. Training Error (Gradient Descent Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Training Error")
-    # plt.show()
-    #
-    # plt.plot(els, errs_test)
-    # plt.title("\u03BB vs. Testing Error (Gradient Descent Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Testing Error")
-    # plt.show()
-
-    # # Plot how the training and testing error change with lambda
-    # num_points = 10
-    # els = np.linspace(-0.5, 0.5, num_points)  # lambda = 0 will result in an invertible matrix
-    # errs_train = np.empty(num_points)
-    # errs_test = np.empty(num_points)
-    #
-    # for i in range(num_points):
-    #     print(f"Point {i} / {num_points}...")
-    #     w_hat = ridge_regression(x_train, y_train, k, els[i])
-    #     errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-    #     errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
-    #
-    # # Find the lambda that results in the smallest training and testing error
-    # min_index_train = np.argmin(errs_train)
-    # min_index_test = np.argmin(errs_test)
-    # print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
-    # print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
-    #
-    # plt.plot(els, errs_train)
-    # plt.plot(els, errs_test)
-    # plt.title("\u03BB vs. Error (Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Error")
-    # plt.legend(["Training Error", "Testing Error"])
-    # plt.show()
-
-    # plt.plot(els, errs_train)
-    # plt.title("\u03BB vs. Training Error (Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Training Error")
-    # plt.show()
-    #
-    # plt.plot(els, errs_test)
-    # plt.title("\u03BB vs. Testing Error (Ridge Regression)")
-    # plt.xlabel("Regularization Constant (\u03BB)")
-    # plt.ylabel("Testing Error")
-    # plt.show()
+    start = time()
+    w_hat3 = lasso_regression(x_train, y_train, k, 0.25, rng)
+    print(f"Lasso regression took {time() - start} s")
+    err_train3 = get_error(w_hat3, x_train, y_train, m_train)
+    err_test3 = get_error(w_hat3, x_test, y_test, m_test)
+    print(f"err_train_lr = {err_train3}")
+    print(f"err_test_lr = {err_test3}")
 
     # Plot how the training and testing error change with lambda
     num_points = 10
-    els = np.linspace(-1000, 1000, num_points)  # lambda = 0 will result in an invertible matrix
+    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in an invertible matrix
+    errs_train = np.empty(num_points)
+    errs_test = np.empty(num_points)
+
+    for i in range(num_points):
+        print(f"Point {i} / {num_points}...")
+        w_hat = ridge_regression(x_train, y_train, k, els[i])
+        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+
+    # Find the lambda that results in the smallest training and testing error
+    min_index_train = np.argmin(errs_train)
+    min_index_test = np.argmin(errs_test)
+    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_train]}")
+    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_test]}")
+
+    # Show both the training and testing error
+    plt.plot(els, errs_train)
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Error (Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Error")
+    plt.legend(["Training Error", "Testing Error"])
+    plt.show()
+
+    # Plot only the training error
+    plt.plot(els, errs_train)
+    plt.title("\u03BB vs. Training Error (Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Training Error")
+    plt.show()
+
+    # Plot only the testing error
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Testing Error (Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Testing Error")
+    plt.show()
+
+    # Plot gradient descent ridge regression
+    num_points = 10
+    els = np.linspace(0.1, 1, num_points)  # lambda = 0 will result in an invertible matrix
+    errs_train = np.empty(num_points)
+    errs_test = np.empty(num_points)
+
+    for i in range(num_points):
+        print(f"Point {i} / {num_points}...")
+        w_hat = gd_ridge_regression(x_train, y_train, k, els[i], rng)
+        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+
+    # Find the lambda that results in the smallest training and testing error
+    min_index_train = np.argmin(errs_train)
+    min_index_test = np.argmin(errs_test)
+    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_train]}")
+    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_test]}")
+
+    plt.plot(els, errs_train)
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Error (Gradient Descent Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Error")
+    plt.legend(["Training Error", "Testing Error"])
+    plt.show()
+
+    plt.plot(els, errs_train)
+    plt.title("\u03BB vs. Training Error (Gradient Descent Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Training Error")
+    plt.show()
+
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Testing Error (Gradient Descent Ridge Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Testing Error")
+    plt.show()
+
+    # Plot lasso regression
+    num_points = 10
+    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in an invertible matrix
     errs_train = np.empty(num_points)
     errs_test = np.empty(num_points)
 
@@ -289,8 +297,10 @@ def main():
     # Find the lambda that results in the smallest training and testing error
     min_index_train = np.argmin(errs_train)
     min_index_test = np.argmin(errs_test)
-    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
-    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
+    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_train]}")
+    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at "
+          f"\u03BB = {els[min_index_test]}")
 
     plt.plot(els, errs_train)
     plt.plot(els, errs_test)
