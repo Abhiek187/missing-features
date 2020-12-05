@@ -109,34 +109,10 @@ def lasso_regression(x_train, y_train, k, el, rng):
     """
     w_hat = np.empty((k, 2 * k))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
-    iters = 1
 
     while True:
-        print(f"iters = {iters}...")
-        iters += 1
         wp_hat = np.copy(w_hat)
-        # Choose a random coordinate where i is in [0, k - 1] and j is in [0, 2k - 1]
-        # i = rng.integers(k)
-        """for i in range(k):
-            j = rng.integers(2 * k)
-
-            # Calculate the lower and upper bounds for Wij
-            wi = w_hat[i]
-            xj = x_train[:, j]
-            yi = y_train[:, i]
-            lower = (-xj.T @ (yi - x_train @ wi.T) - el / 2) / (xj.T @ xj)
-            upper = (-xj.T @ (yi - x_train @ wi.T) + el / 2) / (xj.T @ xj)
-
-            # Update Wij based on the bounds and check for convergence
-            # print(f"i = {i}, j = {j}, Wij = {w_hat[i][j]}, upper = {upper}, lower = {lower}")
-
-            if w_hat[i][j] > upper:
-                wp_hat[i][j] = w_hat[i][j] - upper
-            elif w_hat[i][j] < lower:
-                wp_hat[i][j] = w_hat[i][j] - lower
-            else:
-                wp_hat[i][j] = 0"""
-
+        # Choose a random coordinate j is in [0, 2k - 1] and update the entire column
         j = rng.integers(2 * k)
 
         # Calculate the lower and upper bounds for Wij
@@ -145,11 +121,8 @@ def lasso_regression(x_train, y_train, k, el, rng):
         yi = y_train[:]
         lower = (-xj.T @ (yi - x_train @ wi.T) - el / 2) / (xj.T @ xj)
         upper = (-xj.T @ (yi - x_train @ wi.T) + el / 2) / (xj.T @ xj)
-        # print(f"wi: {w_hat.shape}, x: {x_train.shape}, xj: {xj.shape}, yi: {yi.shape}, lower: {lower.shape}, upper: {upper.shape}")
 
         # Update Wij based on the bounds and check for convergence
-        # print(f"i = {i}, j = {j}, Wij = {w_hat[i][j]}, upper = {upper}, lower = {lower}")
-
         for i in range(k):
             if w_hat[i][j] > upper[i]:
                 wp_hat[i][j] = w_hat[i][j] - upper[i]
@@ -158,7 +131,6 @@ def lasso_regression(x_train, y_train, k, el, rng):
             else:
                 wp_hat[i][j] = 0
 
-        print(f"distance: {np.linalg.norm(wp_hat - w_hat)}")
         if np.linalg.norm(wp_hat - w_hat) < epsilon:
             break
         else:
@@ -218,13 +190,13 @@ def main():
     # print(f"err_train_rr = {err_train2}")
     # print(f"err_test_rr = {err_test2}")
 
-    start = time()
-    w_hat3 = lasso_regression(x_train, y_train, k, 0.25, rng)
-    print(f"Lasso regression took {time() - start} s")
-    err_train3 = get_error(w_hat3, x_train, y_train, m_train)
-    err_test3 = get_error(w_hat3, x_test, y_test, m_test)
-    print(f"err_train_lr = {err_train3}")
-    print(f"err_test_lr = {err_test3}")
+    # start = time()
+    # w_hat3 = lasso_regression(x_train, y_train, k, 0.25, rng)
+    # print(f"Lasso regression took {time() - start} s")
+    # err_train3 = get_error(w_hat3, x_train, y_train, m_train)
+    # err_test3 = get_error(w_hat3, x_test, y_test, m_test)
+    # print(f"err_train_lr = {err_train3}")
+    # print(f"err_test_lr = {err_test3}")
 
     # # Plot how the training and testing error change with lambda
     # num_points = 100
@@ -301,6 +273,44 @@ def main():
     # plt.xlabel("Regularization Constant (\u03BB)")
     # plt.ylabel("Testing Error")
     # plt.show()
+
+    # Plot how the training and testing error change with lambda
+    num_points = 10
+    els = np.linspace(-1000, 1000, num_points)  # lambda = 0 will result in an invertible matrix
+    errs_train = np.empty(num_points)
+    errs_test = np.empty(num_points)
+
+    for i in range(num_points):
+        print(f"Point {i} / {num_points}...")
+        w_hat = lasso_regression(x_train, y_train, k, els[i], rng)
+        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+
+    # Find the lambda that results in the smallest training and testing error
+    min_index_train = np.argmin(errs_train)
+    min_index_test = np.argmin(errs_test)
+    print(f"The minimum training error ({errs_train[min_index_train]}) occurs at \u03BB = {els[min_index_train]}")
+    print(f"The minimum testing error ({errs_test[min_index_train]}) occurs at \u03BB = {els[min_index_test]}")
+
+    plt.plot(els, errs_train)
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Error (Lasso Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Error")
+    plt.legend(["Training Error", "Testing Error"])
+    plt.show()
+
+    plt.plot(els, errs_train)
+    plt.title("\u03BB vs. Training Error (Lasso Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Training Error")
+    plt.show()
+
+    plt.plot(els, errs_test)
+    plt.title("\u03BB vs. Testing Error (Lasso Regression)")
+    plt.xlabel("Regularization Constant (\u03BB)")
+    plt.ylabel("Testing Error")
+    plt.show()
 
 
 if __name__ == "__main__":
