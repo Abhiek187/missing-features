@@ -140,17 +140,16 @@ def lasso_regression(x_train, y_train, k, el, rng):
     return w_hat
 
 
-def get_error(w, x, y, m):
+def get_error(w, x, y):
     """
     Calculate the error given either training or testing data
 
     :param w: the weight matrix (k, 2k)
     :param x: the input (m, 2k)
     :param y: the output (m, k)
-    :param m: the number of data points
-    :return: the error (||XW - Y||^2/m)
+    :return: the error (||XW^T - Y||^2/(m*k))
     """
-    return 1 / m * np.sum(np.linalg.norm(x @ w.T - y) ** 2)
+    return np.sum(np.linalg.norm(x @ w.T - y) ** 2) / y.size
 
 
 def main():
@@ -171,33 +170,40 @@ def main():
     x_test = x[split_index:]
     y_train = y[:split_index]
     y_test = y[split_index:]
-    m_train = len(x_train)
-    m_test = len(x_test)
 
     # Compare the execution of each form of linear regression
     start = time()
     w_hat = ridge_regression(x_train, y_train, k, 0.25)
     print(f"Regular ridge regression took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train, m_train)
-    err_test = get_error(w_hat, x_test, y_test, m_test)
+    err_train = get_error(w_hat, x_train, y_train)
+    err_test = get_error(w_hat, x_test, y_test)
     print(f"err_train_rr = {err_train}")
     print(f"err_test_rr = {err_test}")
 
     start = time()
     w_hat = gd_ridge_regression(x_train, y_train, k, 0.25, rng)
     print(f"Gradient descent took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train, m_train)
-    err_test = get_error(w_hat, x_test, y_test, m_test)
+    err_train = get_error(w_hat, x_train, y_train)
+    err_test = get_error(w_hat, x_test, y_test)
     print(f"err_train_gd = {err_train}")
     print(f"err_test_gd = {err_test}")
 
     start = time()
     w_hat = lasso_regression(x_train, y_train, k, 0.25, rng)
     print(f"Lasso regression took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train, m_train)
-    err_test = get_error(w_hat, x_test, y_test, m_test)
+    err_train = get_error(w_hat, x_train, y_train)
+    err_test = get_error(w_hat, x_test, y_test)
     print(f"err_train_lr = {err_train}")
     print(f"err_test_lr = {err_test}")
+
+    # Calculate the error in the worst case scenario (just guessing the weights)
+    start = time()
+    w_hat = rng.random((k, 2 * k))
+    print(f"Random guess took {time() - start} s")
+    err_train = get_error(w_hat, x_train, y_train)
+    err_test = get_error(w_hat, x_test, y_test)
+    print(f"err_train_guess = {err_train}")
+    print(f"err_test_guess = {err_test}")
 
     # Plot how the training and testing error change with lambda
     num_points = 10
@@ -208,8 +214,8 @@ def main():
     for i in range(num_points):
         print(f"Point {i} / {num_points}...")
         w_hat = ridge_regression(x_train, y_train, k, els[i])
-        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+        errs_train[i] = get_error(w_hat, x_train, y_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test)
 
     # Find the lambda that results in the smallest training and testing error
     min_index_train = np.argmin(errs_train)
@@ -251,8 +257,8 @@ def main():
     for i in range(num_points):
         print(f"Point {i} / {num_points}...")
         w_hat = gd_ridge_regression(x_train, y_train, k, els[i], rng)
-        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+        errs_train[i] = get_error(w_hat, x_train, y_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test)
 
     # Find the lambda that results in the smallest training and testing error
     min_index_train = np.argmin(errs_train)
@@ -291,8 +297,8 @@ def main():
     for i in range(num_points):
         print(f"Point {i} / {num_points}...")
         w_hat = lasso_regression(x_train, y_train, k, els[i], rng)
-        errs_train[i] = get_error(w_hat, x_train, y_train, m_train)
-        errs_test[i] = get_error(w_hat, x_test, y_test, m_test)
+        errs_train[i] = get_error(w_hat, x_train, y_train)
+        errs_test[i] = get_error(w_hat, x_test, y_test)
 
     # Find the lambda that results in the smallest training and testing error
     min_index_train = np.argmin(errs_train)
