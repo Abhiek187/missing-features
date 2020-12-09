@@ -207,7 +207,7 @@ def main():
 
     # Plot how the training and testing error change with lambda
     num_points = 10
-    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in an invertible matrix
+    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in a singular matrix
     errs_train = np.empty(num_points)
     errs_test = np.empty(num_points)
 
@@ -250,7 +250,7 @@ def main():
 
     # Plot gradient descent ridge regression
     num_points = 10
-    els = np.linspace(0.1, 1, num_points)  # lambda = 0 will result in an invertible matrix
+    els = np.linspace(0.1, 1, num_points)  # lambda = 0 will result in a singular matrix
     errs_train = np.empty(num_points)
     errs_test = np.empty(num_points)
 
@@ -290,7 +290,7 @@ def main():
 
     # Plot lasso regression
     num_points = 10
-    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in an invertible matrix
+    els = np.linspace(0.01, 1, num_points)  # lambda = 0 will result in a singular matrix
     errs_train = np.empty(num_points)
     errs_test = np.empty(num_points)
 
