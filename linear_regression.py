@@ -20,11 +20,15 @@ def preprocess_data(data_frame):
     # Since 90% of native.country is United-States, set all the other values to Other
     filled_df.loc[filled_df["native.country"] != "United-States", "native.country"] = "Other"
 
-    # Convert the unordered categorical data into numerical data using one-hot encoding
     # Save information about the original headers
     original_headers = list(filled_df)
     k = len(original_headers)
+    # Convert the unordered categorical data into numerical data using one-hot encoding
     filled_df = pd.get_dummies(filled_df)
+
+    # Remove any outliers (over 3 away from the standard deviation)
+    filled_df = filled_df[(np.abs(filled_df - filled_df.mean()) <= (3 * filled_df.std())).all(axis=1)]
+
     # Convert the new dataframe into a numpy array
     data = filled_df.to_numpy()
     m = data.shape[0]
@@ -33,7 +37,7 @@ def preprocess_data(data_frame):
     # Augment the data set with flags indicating whether a feature is missing or not
     new_headers = list(filled_df)
     k2 = len(new_headers)
-    # Set a flag for each feature with an 80% chance of being missing (0)
+    # Set a flag for each feature with a 20% chance of being missing (0)
     rand_ints = np.random.randint(10, size=(m, k))
     flags = (rand_ints > 1).astype(int)
     missing_features = np.zeros((m, k2), dtype=np.int64)
@@ -82,19 +86,19 @@ def gd_ridge_regression(x_train, y_train, k, el, rng):
     :return: the weight matrix that minimizes the error
     """
     a = 1e-15  # make alpha a small constant
-    w_hat = rng.random((2 * k, k))  # the initial guess of W
+    w_hat = rng.random((k, 2 * k))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
 
     while True:
-        wp_hat = (np.identity(2 * k) - a * x_train.T @ x_train - a * el * np.identity(2 * k)) \
-            @ w_hat + a * x_train.T @ y_train
+        wp_hat = w_hat @ (np.identity(2 * k) - a * x_train.T @ x_train - a * el * np.identity(2 * k)) \
+            + a * y_train.T @ x_train
 
         if np.linalg.norm(wp_hat - w_hat) < epsilon:
             break
         else:
             w_hat = wp_hat
 
-    return w_hat.T  # the calculations above were done with W^T
+    return w_hat
 
 
 def lasso_regression(x_train, y_train, k, el, rng):
@@ -172,38 +176,55 @@ def main():
     y_test = y[split_index:]
 
     # Compare the execution of each form of linear regression
+    models = np.arange(4)
+    errs_train = np.empty(len(models))
+    errs_test = np.empty(len(models))
+
     start = time()
     w_hat = ridge_regression(x_train, y_train, k, 0.25)
     print(f"Regular ridge regression took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train)
-    err_test = get_error(w_hat, x_test, y_test)
-    print(f"err_train_rr = {err_train}")
-    print(f"err_test_rr = {err_test}")
+    y_pred = x_train @ w_hat.T
+    errs_train[0] = get_error(w_hat, x_train, y_train)
+    errs_test[0] = get_error(w_hat, x_test, y_test)
+    print(f"err_train_rr = {errs_train[0]}")
+    print(f"err_test_rr = {errs_test[0]}")
 
     start = time()
     w_hat = gd_ridge_regression(x_train, y_train, k, 0.25, rng)
     print(f"Gradient descent took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train)
-    err_test = get_error(w_hat, x_test, y_test)
-    print(f"err_train_gd = {err_train}")
-    print(f"err_test_gd = {err_test}")
+    errs_train[1] = get_error(w_hat, x_train, y_train)
+    errs_test[1] = get_error(w_hat, x_test, y_test)
+    print(f"err_train_gd = {errs_train[1]}")
+    print(f"err_test_gd = {errs_test[1]}")
 
     start = time()
     w_hat = lasso_regression(x_train, y_train, k, 0.25, rng)
     print(f"Lasso regression took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train)
-    err_test = get_error(w_hat, x_test, y_test)
-    print(f"err_train_lr = {err_train}")
-    print(f"err_test_lr = {err_test}")
+    errs_train[2] = get_error(w_hat, x_train, y_train)
+    errs_test[2] = get_error(w_hat, x_test, y_test)
+    print(f"err_train_lr = {errs_train[2]}")
+    print(f"err_test_lr = {errs_test[2]}")
 
     # Calculate the error in the worst case scenario (just guessing the weights)
     start = time()
     w_hat = rng.random((k, 2 * k))
     print(f"Random guess took {time() - start} s")
-    err_train = get_error(w_hat, x_train, y_train)
-    err_test = get_error(w_hat, x_test, y_test)
-    print(f"err_train_guess = {err_train}")
-    print(f"err_test_guess = {err_test}")
+    errs_train[3] = get_error(w_hat, x_train, y_train)
+    errs_test[3] = get_error(w_hat, x_test, y_test)
+    print(f"err_train_guess = {errs_train[3]}")
+    print(f"err_test_guess = {errs_test[3]}")
+
+    # Create a bar graph of the errors from different models
+    plt.bar(models, errs_train, width=0.25)
+    plt.bar(models + 0.25, errs_test, width=0.25)
+    plt.title("Errors of Various Linear Regression Models")
+    plt.xlabel("Type of Model")
+    plt.ylabel("Error")
+    plt.yscale("log")
+    plt.xticks(models + 0.125,
+               ["Ridge Regression", "Gradient Descent", "Lasso Regression", "Random Guess"])
+    plt.legend(["Training Error", "Testing Error"])
+    plt.show()
 
     # Plot how the training and testing error change with lambda
     num_points = 10
