@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 from time import time
 
 
@@ -16,6 +17,8 @@ def preprocess_data(data_frame):
 
     # Prune the education column since education.num makes it obsolete
     del filled_df["education"]
+    # filled_df.drop(["age", "education.num", "hours.per.week", "education", "fnlwgt", "capital.gain",
+    #                 "capital.loss"], axis=1, inplace=True)
 
     # Since 90% of native.country is United-States, set all the other values to Other
     filled_df.loc[filled_df["native.country"] != "United-States", "native.country"] = "Other"
@@ -54,11 +57,44 @@ def preprocess_data(data_frame):
                 data[r][c] = 0  # replace missing features with 0
 
     # Interleave the data values with their missing flags (feature1, present?, feature2, present?, ...)
-    x = np.empty((m, k2 * 2), dtype=np.int64)
+    x = np.empty((m, k2 * 2 + 1), dtype=np.int64)
     # 0::2 = 0, 2, 4, ...; 1::2 = 1, 3, 5, ...
-    x[:, 0::2] = data
-    x[:, 1::2] = missing_features
+    x[:, 0] = 1
+    x[:, 1::2] = data
+    x[:, 2::2] = missing_features
     return x, true_data
+
+
+def basic_completion(x, y):
+    """
+    Fill in the missing values based on the mean or mode of each feature and calculate the error
+
+    :param x: the input matrix (m, 2k + 1)
+    :param y: the true output (m, k)
+    """
+    mean = np.mean(x, axis=0)  # get the mean for each column
+    mode = stats.mode(x)[0][0]  # get the mode for each column
+    m, k2 = x.shape
+    k = (k2 - 1) // 2
+    y_pred = np.empty((m, k))
+
+    for r in range(m):
+        # Skip the feature flags
+        for c in range(k):
+            # Fill in missing features with the mode of each column
+            cx = c * 2 + 1  # the column index for x and mode
+
+            if x[r][cx + 1] == 0:
+                # Use the mean if the values are real or the mode if the values are discrete
+                if c < 6:
+                    y_pred[r][c] = mean[cx]  # columns 0-5 are real
+                else:
+                    y_pred[r][c] = mode[cx]
+            else:
+                y_pred[r][c] = x[r][cx]
+
+    error = np.sum(np.linalg.norm(y_pred - y) ** 2) / y.size
+    print(f"Basic completion error = {error}")
 
 
 def ridge_regression(x_train, y_train, k, el):
@@ -71,7 +107,7 @@ def ridge_regression(x_train, y_train, k, el):
     :param el: the regularization constant
     :return: the weight matrix that minimizes the error
     """
-    return y_train.T @ x_train @ np.linalg.inv(x_train.T @ x_train + el * np.identity(k * 2))
+    return y_train.T @ x_train @ np.linalg.inv(x_train.T @ x_train + el * np.identity(k * 2 + 1))
 
 
 def gd_ridge_regression(x_train, y_train, k, el, rng):
@@ -86,11 +122,11 @@ def gd_ridge_regression(x_train, y_train, k, el, rng):
     :return: the weight matrix that minimizes the error
     """
     a = 1e-15  # make alpha a small constant
-    w_hat = rng.random((k, 2 * k))  # the initial guess of W
+    w_hat = rng.random((k, 2 * k + 1))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
 
     while True:
-        wp_hat = w_hat @ (np.identity(2 * k) - a * x_train.T @ x_train - a * el * np.identity(2 * k)) \
+        wp_hat = w_hat @ (np.identity(2 * k + 1) - a * x_train.T @ x_train - a * el * np.identity(2 * k + 1)) \
             + a * y_train.T @ x_train
 
         if np.linalg.norm(wp_hat - w_hat) < epsilon:
@@ -112,13 +148,13 @@ def lasso_regression(x_train, y_train, k, el, rng):
     :param rng: the random number generator (np.random.default_rng())
     :return: the weight matrix that minimizes the error
     """
-    w_hat = rng.random((k, 2 * k))  # the initial guess of W
+    w_hat = rng.random((k, 2 * k + 1))  # the initial guess of W
     epsilon = 1e-2  # threshold between Wt+1 and Wt before declaring convergence
 
     while True:
         wp_hat = np.copy(w_hat)
         # Choose a random coordinate j is in [0, 2k - 1] and update the entire column
-        j = rng.integers(2 * k)
+        j = rng.integers(2 * k + 1)
 
         # Calculate the lower and upper bounds for Wij
         wi = w_hat
@@ -148,8 +184,8 @@ def get_error(w, x, y):
     """
     Calculate the error given either training or testing data
 
-    :param w: the weight matrix (k, 2k)
-    :param x: the input (m, 2k)
+    :param w: the weight matrix (k, 2k + 1)
+    :param x: the input (m, 2k + 1)
     :param y: the output (m, k)
     :return: the error (||XW^T - Y||^2/(m*k))
     """
@@ -161,6 +197,7 @@ def main():
     data_frame = pd.read_csv("adult.csv", encoding="utf-8", header=0)
     x, y = preprocess_data(data_frame)
     m, k = y.shape  # x has shape (m, 2k)
+    basic_completion(x, y)  # find the ideal error to achieve
 
     # Shuffle x and y
     rng = np.random.default_rng()
@@ -207,7 +244,7 @@ def main():
 
     # Calculate the error in the worst case scenario (just guessing the weights)
     start = time()
-    w_hat = rng.random((k, 2 * k))
+    w_hat = rng.random((k, 2 * k + 1))
     print(f"Random guess took {time() - start} s")
     errs_train[3] = get_error(w_hat, x_train, y_train)
     errs_test[3] = get_error(w_hat, x_test, y_test)
